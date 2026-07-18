@@ -8,4 +8,21 @@
 .theme-light .bg-slate-950 { background-color: #e2e8f0 !important; }
 .theme-light .text-slate-100, .theme-light .text-slate-200 { color: #0f172a !important; }
 .theme-light .text-slate-300, .theme-light .text-slate-400, .theme-light .text-slate-500 { color: #475569 !important; }
+
+/* Índia permanece cinza como no tabuleiro, mas com contraste próprio por tema. */
+.nation-india-solid { background-color: #a8b1bd; color: #0f172a; }
+.nation-india-text { color: #d8dee7; }
+.nation-india-border { border-color: #a8b1bd; }
+.nation-india-soft { background-color: rgb(100 116 139 / 35%); }
+.theme-light .nation-india-solid { background-color: #64748b; color: #fff; }
+.theme-light .nation-india-text { color: #475569; }
+.theme-light .nation-india-border { border-color: #64748b; }
+.theme-light .nation-india-soft { background-color: #f1f5f9; }
+
+/* Tokens dos SVGs evitam depender das utilidades de cor de texto. */
+.chart-total-text { fill: #e2e8f0; }
+.chart-caption-text { fill: #94a3b8; }
+.theme-light .chart-nation-card { background-color: #ffffff !important; }
+.theme-light .chart-total-text { fill: #0f172a; }
+.theme-light .chart-caption-text { fill: #475569; }
 button, input, select, textarea { min-height: 44px; }

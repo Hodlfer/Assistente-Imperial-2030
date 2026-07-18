@@ -29,8 +29,8 @@ function estadoQuaseNoFim(): Estado {
   const g = jogador({ id: 'g', nome: 'Gov', dinheiro: 10, obrigacoes: [{ nacao: 'eua', valor: 12 }] })
   const outro = jogador({ id: 'o', nome: 'Rival', dinheiro: 4 })
   const base = criarEstado([g, outro], { eua: { pontosPoder: 22, governanteId: 'g', tesouro: 20 } })
-  // 5 fábricas → tributação 10 → +3 PP → 25 (fim de jogo), com transação desfazível.
-  return aplicarAcaoRondel(base, construirTributacao(base, 'eua', 5, 0, 0))
+  // 4 fábricas + 2 territórios → tributação 10 → +3 PP → 25, com transação desfazível.
+  return aplicarAcaoRondel(base, construirTributacao(base, 'eua', 4, 2, 0))
 }
 
 describe('PlacarFinal — fim de jogo ponta a ponta', () => {

@@ -21,10 +21,21 @@ export interface Jogador {
   temCartaInvestidor: boolean
 }
 
+/** Fotografia dos dados do mapa que afetam a Tributação. */
+export interface SituacaoTributaria {
+  /** Fábricas sem ocupação hostil, portanto aptas a tributar (0–4). */
+  fabricasTributaveis: number
+  /** Regiões neutras controladas por bandeiras da nação (0–15). */
+  territorios: number
+  /** Exércitos + frotas que recebem salário na Tributação (0–16). */
+  unidadesMilitares: number
+}
+
 export interface EstadoNacao {
   tesouro: number
   pontosPoder: number
   governanteId: string | null
+  situacao: SituacaoTributaria
   /** Valores de obrigação ainda na pilha (não comprados). */
   obrigacoesDisponiveis: number[]
 }
@@ -119,6 +130,12 @@ export interface GovernosRecalculados extends TransacaoBase {
   portadorId?: string
 }
 
+/** Atualiza, de uma só vez, a fotografia tributária de uma ou mais nações. */
+export interface SituacaoMapaAtualizada extends TransacaoBase {
+  tipo: 'SituacaoMapaAtualizada'
+  alteracoes: Partial<Record<Nacao, SituacaoTributaria>>
+}
+
 /** Movimento simples de dinheiro contra o banco (fonte/destino ilimitada):
  *  débito/crédito no tesouro de uma nação ou no dinheiro pessoal de um jogador.
  *  Primitiva usada pelas ações do rondel (Fábrica, Importação, +2 do portador,
@@ -195,6 +212,7 @@ export type Transacao =
   | TributacaoAplicada
   | JurosPagos
   | GovernosRecalculados
+  | SituacaoMapaAtualizada
   | MovimentoBanco
   | CartaInvestidorPassada
   | AcaoRondel

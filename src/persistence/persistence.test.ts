@@ -78,6 +78,42 @@ describe('export/import JSON', () => {
     }
   })
 
+  it('migra schema 1 usando a última Tributação como fotografia do mapa', () => {
+    const estado = estadoDeExemplo()
+    const legado = structuredClone(estado) as unknown as Record<string, unknown>
+    const estadoLegado = legado as unknown as Estado
+    const inicio = estadoLegado.transacoes[0]
+    if (inicio.tipo === 'PartidaIniciada') {
+      for (const nacao of Object.values(inicio.estadoInicial.nacoes)) {
+        delete (nacao as unknown as { situacao?: unknown }).situacao
+      }
+    }
+    const acao = estadoLegado.transacoes[1]
+    if (acao?.tipo === 'AcaoRondel') {
+      acao.passos = acao.passos.filter((passo) => passo.tipo !== 'SituacaoMapaAtualizada')
+    }
+
+    const resultado = importarJSON(JSON.stringify({
+      schemaVersion: 1,
+      salvoEm: Date.now(),
+      estado: estadoLegado,
+    }))
+    expect(resultado.sucesso).toBe(true)
+    if (resultado.sucesso) {
+      expect(resultado.migrada).toBe(true)
+      expect(resultado.estado.nacoes.eua.situacao).toEqual({
+        fabricasTributaveis: 3,
+        territorios: 5,
+        unidadesMilitares: 3,
+      })
+      expect(resultado.estado.nacoes.india.situacao).toEqual({
+        fabricasTributaveis: 2,
+        territorios: 0,
+        unidadesMilitares: 0,
+      })
+    }
+  })
+
   it('preserva o resultado de desfazer após serializar/desserializar', async () => {
     const { desfazer } = await import('../engine')
     const estado = estadoDeExemplo()

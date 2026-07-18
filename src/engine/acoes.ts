@@ -11,6 +11,7 @@ import type {
   Jogador,
   JurosPagos,
   Nacao,
+  SituacaoTributaria,
   TipoAcaoRondel,
   TributacaoAplicada,
 } from './types'
@@ -25,6 +26,7 @@ import {
   aplicarTributacao,
   recalcularGovernos,
   trocarObrigacao,
+  atualizarSituacaoMapa,
 } from './estado'
 
 /** Escolha de investimento de um jogador na ação de Investidor. */
@@ -184,9 +186,23 @@ export function construirTributacao(
   fabricas: number,
   bandeiras: number,
   unidades: number,
+  situacao?: SituacaoTributaria,
 ): AcaoRondel {
-  return comporAcao(estado, 'tributacao', nacao, `Tributação (${nomeNacao(nacao)})`, (e) =>
-    aplicarTributacao(e, nacao, fabricas, bandeiras, unidades),
+  return comporAcao(
+    estado,
+    'tributacao',
+    nacao,
+    `Tributação (${nomeNacao(nacao)})`,
+    (e0) => {
+      const registrada = situacao ?? {
+        fabricasTributaveis: fabricas,
+        territorios: bandeiras,
+        unidadesMilitares: unidades,
+      }
+      let e = atualizarSituacaoMapa(e0, { [nacao]: registrada })
+      e = aplicarTributacao(e, nacao, fabricas, bandeiras, unidades)
+      return e
+    },
   )
 }
 

@@ -3,8 +3,16 @@
 // (docs/ARQUITETURA.md §Tudo é transação) — em vez de confiar cegamente no
 // `jogadores`/`nacoes` do arquivo.
 
-import type { Estado, Transacao } from '../engine'
+import type {
+  Estado,
+  Nacao,
+  PartidaIniciada,
+  SituacaoTributaria,
+  Transacao,
+  TributacaoAplicada,
+} from '../engine'
 import { aplicarTransacao } from '../engine'
+import { NACOES } from '../data/regras'
 import type { PartidaSalva } from './tipos'
 import { SCHEMA_VERSION } from './tipos'
 
@@ -21,7 +29,7 @@ export function exportarJSON(estado: Estado): string {
 }
 
 export type ResultadoImportacao =
-  | { sucesso: true; estado: Estado }
+  | { sucesso: true; estado: Estado; migrada: boolean }
   | { sucesso: false; erro: string }
 
 function ehObjeto(v: unknown): v is Record<string, unknown> {
@@ -63,7 +71,87 @@ function reprocessarTransacoes(transacoes: Transacao[]): ResultadoImportacao {
     }
   }
 
-  return { sucesso: true, estado }
+  return { sucesso: true, estado, migrada: false }
+}
+
+const SITUACAO_INICIAL: SituacaoTributaria = {
+  fabricasTributaveis: 2,
+  territorios: 0,
+  unidadesMilitares: 0,
+}
+
+function tributacoesDentro(t: Transacao): TributacaoAplicada[] {
+  if (t.tipo === 'TributacaoAplicada') return [t]
+  if (t.tipo === 'AcaoRondel') return t.passos.flatMap(tributacoesDentro)
+  return []
+}
+
+/** Migra o schema 1 sem inventar posições do mapa: usa a última Tributação de
+ * cada nação como melhor fotografia disponível e os valores iniciais oficiais
+ * para nações que nunca tributaram. */
+function migrarTransacoesV1(transacoes: Transacao[]): Transacao[] {
+  const inicioBruto = transacoes[0]
+  if (!inicioBruto || inicioBruto.tipo !== 'PartidaIniciada') return transacoes
+
+  const inicio = structuredClone(inicioBruto) as PartidaIniciada
+  for (const nacao of NACOES) {
+    inicio.estadoInicial.nacoes[nacao].situacao = { ...SITUACAO_INICIAL }
+  }
+
+  const ultimas: Partial<Record<Nacao, SituacaoTributaria>> = {}
+  for (const t of transacoes.slice(1)) {
+    for (const tributacao of tributacoesDentro(t)) {
+      ultimas[tributacao.nacao] = {
+        fabricasTributaveis: tributacao.fabricas,
+        territorios: tributacao.bandeiras,
+        unidadesMilitares: tributacao.unidades,
+      }
+    }
+  }
+
+  const migradas: Transacao[] = [inicio, ...structuredClone(transacoes.slice(1))]
+  if (Object.keys(ultimas).length > 0) {
+    migradas.push({
+      tipo: 'SituacaoMapaAtualizada',
+      timestamp: Math.max(Date.now(), ...migradas.map((t) => t.timestamp + 1)),
+      rotulo: 'Situação do mapa estimada na migração',
+      alteracoes: ultimas,
+    })
+  }
+  return migradas
+}
+
+export type ResultadoMigracao =
+  | { sucesso: true; partida: PartidaSalva; migrada: boolean }
+  | { sucesso: false; erro: string }
+
+/** Normaliza e reprocessa um save persistido, aceitando o schema anterior. */
+export function migrarPartidaSalva(registro: PartidaSalva): ResultadoMigracao {
+  if (registro.schemaVersion !== 1 && registro.schemaVersion !== SCHEMA_VERSION) {
+    return {
+      sucesso: false,
+      erro: `Versão de schema desconhecida (${registro.schemaVersion}, esperada ${SCHEMA_VERSION}).`,
+    }
+  }
+  if (!ehObjeto(registro.estado) || !Array.isArray(registro.estado.transacoes)) {
+    return { sucesso: false, erro: 'Arquivo sem lista de transações válida.' }
+  }
+
+  const migrada = registro.schemaVersion === 1
+  const transacoes = migrada
+    ? migrarTransacoesV1(registro.estado.transacoes as Transacao[])
+    : (registro.estado.transacoes as Transacao[])
+  const resultado = reprocessarTransacoes(transacoes)
+  if (!resultado.sucesso) return resultado
+  return {
+    sucesso: true,
+    migrada,
+    partida: {
+      schemaVersion: SCHEMA_VERSION,
+      salvoEm: registro.salvoEm,
+      estado: resultado.estado,
+    },
+  }
 }
 
 /** Valida o schema do JSON colado/carregado e reprocessa as transações pela
@@ -82,17 +170,16 @@ export function importarJSON(json: string): ResultadoImportacao {
       erro: 'Arquivo sem "schemaVersion" — não parece um save do Assistente Imperial 2030.',
     }
   }
-  if (bruto.schemaVersion !== SCHEMA_VERSION) {
-    return {
-      sucesso: false,
-      erro: `Versão de schema desconhecida (${bruto.schemaVersion}, esperada ${SCHEMA_VERSION}). Guarde este arquivo como backup — a migração automática ainda não existe para essa versão.`,
-    }
-  }
-
   const estadoBruto = bruto.estado
   if (!ehObjeto(estadoBruto) || !Array.isArray(estadoBruto.transacoes)) {
     return { sucesso: false, erro: 'Arquivo sem lista de transações válida.' }
   }
 
-  return reprocessarTransacoes(estadoBruto.transacoes as Transacao[])
+  const migracao = migrarPartidaSalva(bruto as unknown as PartidaSalva)
+  if (!migracao.sucesso) return migracao
+  return {
+    sucesso: true,
+    estado: migracao.partida.estado,
+    migrada: migracao.migrada,
+  }
 }

@@ -11,6 +11,7 @@ import { PainelHistorico } from '../historico/PainelHistorico'
 import { ConfirmarDesfazer } from '../historico/ConfirmarDesfazer'
 import { ExportImportModal } from '../persistencia/ExportImportModal'
 import { Estatisticas } from './Estatisticas'
+import { SituacaoMapa } from './SituacaoMapa'
 
 interface Props {
   jogo: UseGameResult
@@ -31,6 +32,7 @@ export function Dashboard({ jogo, onNovaPartida, preferencias = { tema: 'escuro'
   const [exportImportAberto, setExportImportAberto] = useState(false)
   const [placarFechado, setPlacarFechado] = useState(false)
   const [estatisticasAbertas, setEstatisticasAbertas] = useState(false)
+  const [situacaoAberta, setSituacaoAberta] = useState(false)
   const [terminouAnterior, setTerminouAnterior] = useState(false)
   const estado = jogo.estado
 
@@ -54,11 +56,12 @@ export function Dashboard({ jogo, onNovaPartida, preferencias = { tema: 'escuro'
         <h1 className="text-lg font-semibold text-slate-100 sm:text-2xl">
           Assistente Imperial 2030
         </h1>
-        <div className="flex shrink-0 flex-wrap justify-end gap-2">
+        <div className="flex min-w-0 flex-1 flex-wrap justify-end gap-2">
           <button type="button" onClick={() => atualizarPreferencias({ tema: preferencias.tema === 'escuro' ? 'claro' : 'escuro' })} className="min-h-11 rounded-lg bg-slate-700 px-3 text-sm font-medium text-slate-200">{preferencias.tema === 'escuro' ? '☀️ Tema' : '🌙 Tema'}</button>
           <button type="button" aria-pressed={preferencias.ocultarDinheiro} onClick={() => atualizarPreferencias({ ocultarDinheiro: !preferencias.ocultarDinheiro })} className="min-h-11 rounded-lg bg-slate-700 px-3 text-sm font-medium text-slate-200">{preferencias.ocultarDinheiro ? 'Mostrar dinheiro' : 'Ocultar dinheiro'}</button>
           <button type="button" aria-pressed={preferencias.manterTelaLigada} onClick={() => atualizarPreferencias({ manterTelaLigada: !preferencias.manterTelaLigada })} className="min-h-11 rounded-lg bg-slate-700 px-3 text-sm font-medium text-slate-200">{preferencias.manterTelaLigada ? '✓ Tela ligada' : 'Tela ligada'}</button>
           <button type="button" onClick={() => setEstatisticasAbertas(true)} className="min-h-11 rounded-lg bg-slate-700 px-3 text-sm font-medium text-slate-200">Estatísticas</button>
+          <button type="button" onClick={() => setSituacaoAberta(true)} className="min-h-11 rounded-lg bg-slate-700 px-3 text-sm font-medium text-slate-200">Situação do mapa</button>
           {terminou && (
             <button
               type="button"
@@ -96,6 +99,7 @@ export function Dashboard({ jogo, onNovaPartida, preferencias = { tema: 'escuro'
       <CartoesJogadores estado={estado} ocultarDinheiro={preferencias.ocultarDinheiro} />
 
       <Estatisticas estado={estado} aberto={estatisticasAbertas} onFechar={() => setEstatisticasAbertas(false)} />
+      <SituacaoMapa estado={estado} jogo={jogo} aberto={situacaoAberta} onFechar={() => setSituacaoAberta(false)} />
       <AjusteManual
         estado={estado}
         jogo={jogo}

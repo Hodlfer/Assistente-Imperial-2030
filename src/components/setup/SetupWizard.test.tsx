@@ -14,6 +14,20 @@ function ativarJogador(nome: string) {
 }
 
 describe('SetupWizard — critério de aceite (4 jogadores)', () => {
+  it('sorteia automaticamente uma preparação válida para 2 jogadores', async () => {
+    render(<App />)
+    expect(await screen.findByText('Jogadores')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Avançar'))
+    fireEvent.click(screen.getByText('Avançar'))
+    fireEvent.click(screen.getByText('Sortear conforme as regras'))
+
+    expect(screen.getAllByText('sobra 2')).toHaveLength(2)
+    expect(screen.getAllByLabelText(/comprada por/)).toHaveLength(12)
+    fireEvent.click(screen.getByText('Avançar'))
+    expect(screen.getByText('Carta de Investidor')).toBeInTheDocument()
+    expect(screen.getByText(/Sugestão pela regra/)).toBeInTheDocument()
+  })
+
   it('completa o setup do início ao fim terminando no resumo com governos corretos', async () => {
     render(<App />)
 

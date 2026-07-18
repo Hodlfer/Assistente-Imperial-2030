@@ -121,4 +121,32 @@ describe('Dashboard — critério de aceite (6 jogadores, fixture de dev)', () =
     expect(screen.getByRole('heading', { name: 'Fábrica' })).toBeInTheDocument()
     expect(screen.getByLabelText('Nação ativa')).toBeInTheDocument()
   })
+
+  it('salva a situação do mapa e preenche a próxima Tributação', async () => {
+    await carregarFixture()
+
+    fireEvent.click(screen.getByText('Situação do mapa'))
+    fireEvent.change(screen.getByLabelText('Territórios de Rússia'), {
+      target: { value: '4' },
+    })
+    fireEvent.change(screen.getByLabelText('Unidades militares de Rússia'), {
+      target: { value: '3' },
+    })
+    fireEvent.click(screen.getByText('Salvar situação'))
+
+    fireEvent.click(screen.getByText('Ações'))
+    fireEvent.click(screen.getByText('Tributação'))
+    expect(screen.getByLabelText('Territórios')).toHaveValue(4)
+    expect(screen.getByLabelText('Unid. militares')).toHaveValue(3)
+  })
+
+  it('abre o painel com territórios, controle financeiro e ranking hipotético', async () => {
+    await carregarFixture()
+    fireEvent.click(screen.getByText('Estatísticas'))
+
+    expect(screen.getByText('Territórios controlados')).toBeInTheDocument()
+    expect(screen.getByText('Controle financeiro por nação')).toBeInTheDocument()
+    expect(screen.getByText('Ranking se a partida terminasse agora')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Distribuição dos 38 territórios neutros' })).toBeInTheDocument()
+  })
 })

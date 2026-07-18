@@ -11,6 +11,8 @@ import type {
   Nacao,
   ObrigacaoComprada,
   ObrigacaoTrocada,
+  SituacaoMapaAtualizada,
+  SituacaoTributaria,
   Transacao,
   TributacaoAplicada,
 } from './types'
@@ -44,6 +46,11 @@ export function criarEstado(
       tesouro: parcial.tesouro ?? 0,
       pontosPoder: parcial.pontosPoder ?? 0,
       governanteId: parcial.governanteId ?? null,
+      situacao: parcial.situacao ?? {
+        fabricasTributaveis: 2,
+        territorios: 0,
+        unidadesMilitares: 0,
+      },
       obrigacoesDisponiveis:
         parcial.obrigacoesDisponiveis ?? disponiveisPadrao,
     }
@@ -118,6 +125,9 @@ function aplicarEfeitoEmSub(sub: Substrato, t: Transacao): void {
     case 'GovernosRecalculados':
       aplicarRecalculoGovernos(sub as Estado, t.portadorId)
       break
+    case 'SituacaoMapaAtualizada':
+      efeitoSituacaoMapa(sub, t)
+      break
     case 'MovimentoBanco':
       efeitoMovimentoBanco(sub, t)
       break
@@ -131,6 +141,48 @@ function aplicarEfeitoEmSub(sub: Substrato, t: Transacao): void {
       efeitoAjusteManual(sub, t)
       break
   }
+}
+
+// --- Situação tributária do mapa --------------------------------------------
+
+function validarInteiroFaixa(valor: number, nome: string, maximo: number): void {
+  if (!Number.isInteger(valor) || valor < 0 || valor > maximo) {
+    throw new Error(`${nome} deve ser um inteiro entre 0 e ${maximo}`)
+  }
+}
+
+function validarSituacao(situacao: SituacaoTributaria): void {
+  validarInteiroFaixa(situacao.fabricasTributaveis, 'Fábricas tributáveis', 4)
+  validarInteiroFaixa(situacao.territorios, 'Territórios', 15)
+  validarInteiroFaixa(situacao.unidadesMilitares, 'Unidades militares', 16)
+}
+
+function efeitoSituacaoMapa(sub: Substrato, t: SituacaoMapaAtualizada): void {
+  const proximas = {} as Record<Nacao, SituacaoTributaria>
+  for (const nacao of NACOES) {
+    const situacao = t.alteracoes[nacao] ?? sub.nacoes[nacao].situacao
+    validarSituacao(situacao)
+    proximas[nacao] = situacao
+  }
+  const totalTerritorios = NACOES.reduce((soma, nacao) => soma + proximas[nacao].territorios, 0)
+  if (totalTerritorios > 38) {
+    throw new Error(`O mapa tem somente 38 territórios neutros (informados: ${totalTerritorios})`)
+  }
+  for (const nacao of NACOES) sub.nacoes[nacao].situacao = { ...proximas[nacao] }
+}
+
+/** Registra uma fotografia tributária de uma ou mais nações. */
+export function atualizarSituacaoMapa(
+  estado: Estado,
+  alteracoes: Partial<Record<Nacao, SituacaoTributaria>>,
+): Estado {
+  const t: SituacaoMapaAtualizada = {
+    tipo: 'SituacaoMapaAtualizada',
+    timestamp: Date.now(),
+    rotulo: 'Situação do mapa atualizada',
+    alteracoes,
+  }
+  return aplicarTransacao(estado, t)
 }
 
 // --- Helpers de substrato ----------------------------------------------------
@@ -268,6 +320,11 @@ function planejarTributacao(
   bandeiras: number,
   unidades: number,
 ): TributacaoAplicada['resultado'] {
+  validarSituacao({
+    fabricasTributaveis: fabricas,
+    territorios: bandeiras,
+    unidadesMilitares: unidades,
+  })
   const estadoNacao = sub.nacoes[nacao]
   const tributacao = 2 * fabricas + bandeiras
   const { bonus, pp } = bonusEPontosTributacao(tributacao)
@@ -286,6 +343,49 @@ function planejarTributacao(
     salarios,
     bonusGovernante,
     ganhoPP: pp,
+  }
+}
+
+export interface PreviaTributacao {
+  resultado: TributacaoAplicada['resultado']
+  tesouroFinal: number
+  pontosPoderFinal: number
+  consumoDoTributo: number
+  saldoTributoAposMilitares: number
+  excedenteMilitar: number
+  excedenteCobertoPeloTesouro: number
+  salariosNaoPagos: number
+}
+
+/** Calcula todos os fluxos da Tributação sem alterar o estado. */
+export function preverTributacao(
+  estado: Estado,
+  nacao: Nacao,
+  situacao: SituacaoTributaria = estado.nacoes[nacao].situacao,
+): PreviaTributacao {
+  validarSituacao(situacao)
+  const resultado = planejarTributacao(
+    { jogadores: estado.jogadores, nacoes: estado.nacoes },
+    nacao,
+    situacao.fabricasTributaveis,
+    situacao.territorios,
+    situacao.unidadesMilitares,
+  )
+  const tesouroFinal =
+    estado.nacoes[nacao].tesouro +
+    resultado.aoTesouro -
+    resultado.salarios -
+    resultado.bonusGovernante
+  const consumoDoTributo = Math.min(situacao.unidadesMilitares, resultado.tributacao)
+  return {
+    resultado,
+    tesouroFinal,
+    pontosPoderFinal: Math.min(PP_MAXIMO, estado.nacoes[nacao].pontosPoder + resultado.ganhoPP),
+    consumoDoTributo,
+    saldoTributoAposMilitares: resultado.tributacao - consumoDoTributo,
+    excedenteMilitar: Math.max(0, situacao.unidadesMilitares - resultado.tributacao),
+    excedenteCobertoPeloTesouro: Math.max(0, resultado.salarios - consumoDoTributo),
+    salariosNaoPagos: situacao.unidadesMilitares - resultado.salarios,
   }
 }
 

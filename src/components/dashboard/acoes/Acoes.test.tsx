@@ -47,7 +47,7 @@ describe('Critério de aceite C — tributação EUA na UI', () => {
     )
 
     fireEvent.change(screen.getByLabelText('Fábricas não-ocup.'), { target: { value: '3' } })
-    fireEvent.change(screen.getByLabelText('Bandeiras'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('Territórios'), { target: { value: '5' } })
     fireEvent.change(screen.getByLabelText('Unid. militares'), { target: { value: '3' } })
 
     // Etapa 1: +11 ao tesouro (2×3 + 5).
