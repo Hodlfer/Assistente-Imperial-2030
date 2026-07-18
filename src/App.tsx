@@ -1,5 +1,7 @@
 import { useGame } from './hooks/useGame'
 import { SetupWizard } from './components/setup/SetupWizard'
+import { Dashboard } from './components/dashboard/Dashboard'
+import { criarEstadoFixture } from './dev/fixtureDashboard'
 
 function App() {
   const jogo = useGame()
@@ -8,18 +10,24 @@ function App() {
     return (
       <main className="min-h-screen bg-slate-900 text-slate-100">
         <SetupWizard jogo={jogo} />
+        {import.meta.env.DEV && (
+          <div className="mx-auto max-w-3xl px-4 pb-8 sm:px-8">
+            <button
+              type="button"
+              onClick={() => jogo.carregarEstado(criarEstadoFixture())}
+              className="rounded-lg bg-slate-800 px-4 py-2 text-sm text-slate-500"
+            >
+              Carregar exemplo (dev): 6 jogadores
+            </button>
+          </div>
+        )}
       </main>
     )
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-900 text-slate-100">
-      <h1 className="text-3xl font-semibold sm:text-5xl">
-        Assistente Imperial 2030
-      </h1>
-      <p className="text-slate-400">
-        Partida iniciada com {jogo.estado.jogadores.length} jogadores.
-      </p>
+    <main className="min-h-screen bg-slate-900 text-slate-100">
+      <Dashboard jogo={jogo} />
     </main>
   )
 }

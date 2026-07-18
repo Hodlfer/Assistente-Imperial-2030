@@ -114,6 +114,30 @@ export interface GovernosRecalculados extends TransacaoBase {
   tipo: 'GovernosRecalculados'
 }
 
+/** Alvo de uma correção manual (docs/ARQUITETURA.md — válvula de escape para
+ *  situações de mesa que o app não modela). */
+export type AlvoAjusteManual =
+  | { tipo: 'tesouro'; nacao: Nacao; delta: number }
+  | { tipo: 'jogador'; jogadorId: string; delta: number }
+  | {
+      tipo: 'moverObrigacao'
+      nacao: Nacao
+      valor: number
+      /** `null` = pilha de obrigações disponíveis da nação. */
+      origemJogadorId: string | null
+      /** `null` = pilha de obrigações disponíveis da nação. */
+      destinoJogadorId: string | null
+    }
+
+/** Transação genérica de ajuste manual (menu "Correção manual" do dashboard):
+ *  +/− em qualquer tesouro ou jogador, ou mover uma obrigação. Passa pelo
+ *  mesmo pipeline de transações — aparece no histórico e é desfazível. */
+export interface AjusteManual extends TransacaoBase {
+  tipo: 'AjusteManual'
+  motivo: string
+  alvo: AlvoAjusteManual
+}
+
 export type Transacao =
   | PartidaIniciada
   | ObrigacaoComprada
@@ -121,3 +145,4 @@ export type Transacao =
   | TributacaoAplicada
   | JurosPagos
   | GovernosRecalculados
+  | AjusteManual

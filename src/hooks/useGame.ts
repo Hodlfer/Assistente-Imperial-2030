@@ -26,6 +26,9 @@ export interface UseGameResult {
     jogadores: Jogador[],
     nacoesParciais?: Partial<Record<Nacao, Partial<EstadoNacao>>>,
   ) => void
+  /** Substitui o estado atual por um já pronto (ex.: fixture de dev, import de
+   *  JSON — Sessão 5), sem recalcular governos. */
+  carregarEstado: (estado: Estado) => void
   /** Limpa o erro pendente (ex.: ao fechar o toast). */
   limparErro: () => void
 }
@@ -83,7 +86,20 @@ export function useGame(): UseGameResult {
     [],
   )
 
+  const carregarEstado = useCallback((novoEstado: Estado) => {
+    setEstado(novoEstado)
+    setErro(null)
+  }, [])
+
   const limparErro = useCallback(() => setErro(null), [])
 
-  return { estado, erro, dispatch, desfazer, iniciarPartida, limparErro }
+  return {
+    estado,
+    erro,
+    dispatch,
+    desfazer,
+    iniciarPartida,
+    carregarEstado,
+    limparErro,
+  }
 }
