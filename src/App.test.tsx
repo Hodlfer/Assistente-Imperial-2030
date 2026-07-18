@@ -3,10 +3,8 @@ import { describe, expect, it } from 'vitest'
 import App from './App'
 
 describe('App', () => {
-  it('renders the placeholder title', () => {
+  it('abre no wizard de setup quando não há partida em curso', () => {
     render(<App />)
-    expect(
-      screen.getByText('Assistente Imperial 2030'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Jogadores')).toBeInTheDocument()
   })
 })
