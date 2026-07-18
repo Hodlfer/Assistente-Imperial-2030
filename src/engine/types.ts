@@ -112,6 +112,56 @@ export interface JurosPagos extends TransacaoBase {
  *  Só é aplicada ao fim da ação de Investidor. */
 export interface GovernosRecalculados extends TransacaoBase {
   tipo: 'GovernosRecalculados'
+  /** Portador da carta de Investidor no momento do recálculo. Quando presente,
+   *  o desempate entre novos empatados usa a ordem horária a partir dele
+   *  (docs/REGRAS.md §Regras monetárias, ação de Investidor). Ausente no
+   *  recálculo inicial da partida, que mantém o governo atual em empates. */
+  portadorId?: string
+}
+
+/** Movimento simples de dinheiro contra o banco (fonte/destino ilimitada):
+ *  débito/crédito no tesouro de uma nação ou no dinheiro pessoal de um jogador.
+ *  Primitiva usada pelas ações do rondel (Fábrica, Importação, +2 do portador,
+ *  espaços extras). O sinal de `delta` já embute a direção (docs/REGRAS.md
+ *  §Regras monetárias, §Banco sem saldo em docs/ARQUITETURA.md). */
+export interface MovimentoBanco extends TransacaoBase {
+  tipo: 'MovimentoBanco'
+  alvo:
+    | { tipo: 'tesouro'; nacao: Nacao }
+    | { tipo: 'jogador'; jogadorId: string }
+  delta: number
+}
+
+/** Passa a carta de Investidor de um jogador ao próximo em sentido horário
+ *  (docs/REGRAS.md §Regras monetárias, ação de Investidor). */
+export interface CartaInvestidorPassada extends TransacaoBase {
+  tipo: 'CartaInvestidorPassada'
+  deJogadorId: string
+  paraJogadorId: string
+}
+
+/** Nomes das ações do rondel, para rótulo/histórico e cursor de turno. */
+export type TipoAcaoRondel =
+  | 'fabrica'
+  | 'importacao'
+  | 'producao'
+  | 'manobra'
+  | 'tributacao'
+  | 'investidor'
+  | 'investidorPassar'
+  | 'espacosExtras'
+
+/** Ação do rondel como UMA transação composta: aplica seus `passos` em ordem e
+ *  é desfeita de uma vez (docs/ARQUITETURA.md §Tudo é transação; enunciado da
+ *  Sessão 4: "dispara UMA transação composta, desfazível de uma vez"). Ações
+ *  sem efeito monetário (Produção/Manobra) têm `passos` vazio — servem como
+ *  registro de log do turno. */
+export interface AcaoRondel extends TransacaoBase {
+  tipo: 'AcaoRondel'
+  acao: TipoAcaoRondel
+  /** Nação ativa que executou a ação (base do cursor de turno). */
+  nacao: Nacao
+  passos: Transacao[]
 }
 
 /** Alvo de uma correção manual (docs/ARQUITETURA.md — válvula de escape para
@@ -145,4 +195,7 @@ export type Transacao =
   | TributacaoAplicada
   | JurosPagos
   | GovernosRecalculados
+  | MovimentoBanco
+  | CartaInvestidorPassada
+  | AcaoRondel
   | AjusteManual

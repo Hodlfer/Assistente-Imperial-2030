@@ -108,11 +108,17 @@ describe('Dashboard — critério de aceite (6 jogadores, fixture de dev)', () =
     expect(screen.getByText('Aplicar correção')).toBeDisabled()
   })
 
-  it('exibe o botão flutuante "Ações" com o menu do rondel desabilitado', () => {
+  it('abre o menu do botão flutuante "Ações" com as ações do rondel ativas', () => {
     carregarFixture()
 
     fireEvent.click(screen.getByText('Ações'))
-    expect(screen.getByText('Fábrica')).toBeInTheDocument()
-    expect(screen.getByText('Fábrica')).toBeDisabled()
+    expect(screen.getByText('Fábrica')).toBeEnabled()
+    expect(screen.getByText('Tributação')).toBeEnabled()
+    expect(screen.getByText('Investidor — parar')).toBeEnabled()
+
+    // Abrir "Fábrica" leva ao modal com o seletor de nação ativa.
+    fireEvent.click(screen.getByText('Fábrica'))
+    expect(screen.getByRole('heading', { name: 'Fábrica' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Nação ativa')).toBeInTheDocument()
   })
 })
