@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import type { Nacao } from '../../engine'
 import { nacaoAtivaSugerida } from '../../engine'
 import { NOMES_NACAO } from '../../data/regras'
 import type { UseGameResult } from '../../hooks/useGame'
@@ -7,11 +6,13 @@ import type { AcaoSimples } from './acoes/AcaoSimplesModal'
 import { AcaoSimplesModal } from './acoes/AcaoSimplesModal'
 import { TributacaoModal } from './acoes/TributacaoModal'
 import { InvestidorModal } from './acoes/InvestidorModal'
-import { FimDeJogoModal } from './acoes/FimDeJogoModal'
 
 interface Props {
   jogo: UseGameResult
   onPedirDesfazer: () => void
+  /** Pós-jogo: bloqueia as ações do rondel, mantendo apenas desfazer/refazer
+   *  (enunciado Sessão 6, item 4). */
+  bloqueado?: boolean
 }
 
 type ModalAberto =
@@ -39,10 +40,9 @@ const ITENS: ItemMenu[] = [
   { rotulo: 'Espaços extras', abrir: { tipo: 'simples', acao: 'espacosExtras' } },
 ]
 
-export function AcoesFlutuante({ jogo, onPedirDesfazer }: Props) {
+export function AcoesFlutuante({ jogo, onPedirDesfazer, bloqueado = false }: Props) {
   const [aberto, setAberto] = useState(false)
   const [modal, setModal] = useState<ModalAberto>(null)
-  const [fimDeJogo, setFimDeJogo] = useState<Nacao | null>(null)
 
   const estado = jogo.estado
   if (!estado) return null
@@ -59,20 +59,28 @@ export function AcoesFlutuante({ jogo, onPedirDesfazer }: Props) {
       <div className="fixed bottom-4 right-4 z-10 flex flex-col items-end gap-2">
         {aberto && (
           <div className="flex w-60 flex-col gap-2 rounded-xl bg-slate-800 p-3 shadow-lg">
-            <p className="px-1 text-xs text-slate-400">
-              Próxima na ordem:{' '}
-              <span className="font-semibold text-slate-200">{NOMES_NACAO[nacaoInicial]}</span>
-            </p>
-            {ITENS.map((item) => (
-              <button
-                key={item.rotulo}
-                type="button"
-                onClick={() => abrir(item.abrir)}
-                className="rounded-lg bg-slate-700 px-4 py-2 text-left text-sm font-medium text-slate-100 hover:bg-slate-600"
-              >
-                {item.rotulo}
-              </button>
-            ))}
+            {bloqueado ? (
+              <p className="px-1 text-xs text-amber-300">
+                Partida encerrada — ações do rondel bloqueadas. Use "Desfazer" para corrigir uma
+                tributação que encerrou a partida indevidamente.
+              </p>
+            ) : (
+              <p className="px-1 text-xs text-slate-400">
+                Próxima na ordem:{' '}
+                <span className="font-semibold text-slate-200">{NOMES_NACAO[nacaoInicial]}</span>
+              </p>
+            )}
+            {!bloqueado &&
+              ITENS.map((item) => (
+                <button
+                  key={item.rotulo}
+                  type="button"
+                  onClick={() => abrir(item.abrir)}
+                  className="rounded-lg bg-slate-700 px-4 py-2 text-left text-sm font-medium text-slate-100 hover:bg-slate-600"
+                >
+                  {item.rotulo}
+                </button>
+              ))}
             <button
               type="button"
               onClick={() => {
@@ -120,7 +128,6 @@ export function AcoesFlutuante({ jogo, onPedirDesfazer }: Props) {
           jogo={jogo}
           nacaoInicial={nacaoInicial}
           onFechar={() => setModal(null)}
-          onFimDeJogo={(nacao) => setFimDeJogo(nacao)}
         />
       )}
 
@@ -133,8 +140,6 @@ export function AcoesFlutuante({ jogo, onPedirDesfazer }: Props) {
           onFechar={() => setModal(null)}
         />
       )}
-
-      {fimDeJogo && <FimDeJogoModal nacao={fimDeJogo} onFechar={() => setFimDeJogo(null)} />}
     </>
   )
 }

@@ -50,6 +50,9 @@ export interface UseGameResult {
   /** Substitui o estado atual por um já pronto (ex.: fixture de dev, save
    *  carregado do IndexedDB, import de JSON), sem recalcular governos. */
   carregarEstado: (estado: Estado) => void
+  /** Encerra a partida atual e volta ao estado sem partida (`estado === null`),
+   *  levando a UI de volta ao wizard (enunciado Sessão 6, item 4). */
+  reiniciar: () => void
   /** Limpa o erro pendente (ex.: ao fechar o toast). */
   limparErro: () => void
 }
@@ -140,6 +143,11 @@ export function useGame(estadoInicial: Estado | null = null): UseGameResult {
     setErro(null)
   }, [])
 
+  const reiniciar = useCallback(() => {
+    setInterno({ estado: null, pilhaRefazer: [] })
+    setErro(null)
+  }, [])
+
   const limparErro = useCallback(() => setErro(null), [])
 
   return {
@@ -152,6 +160,7 @@ export function useGame(estadoInicial: Estado | null = null): UseGameResult {
     podeRefazer: interno.pilhaRefazer.length > 0,
     iniciarPartida,
     carregarEstado,
+    reiniciar,
     limparErro,
   }
 }
