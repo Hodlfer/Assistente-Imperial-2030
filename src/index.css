@@ -1,1 +1,11 @@
 @import 'tailwindcss';
+
+/* Preferência clara aplicada sem misturar configurações com o estado da partida. */
+.theme-light { color-scheme: light; }
+.theme-light.bg-slate-900, .theme-light .bg-slate-900 { background-color: #f1f5f9 !important; }
+.theme-light .bg-slate-800 { background-color: #ffffff !important; }
+.theme-light .bg-slate-700 { background-color: #e2e8f0 !important; }
+.theme-light .bg-slate-950 { background-color: #e2e8f0 !important; }
+.theme-light .text-slate-100, .theme-light .text-slate-200 { color: #0f172a !important; }
+.theme-light .text-slate-300, .theme-light .text-slate-400, .theme-light .text-slate-500 { color: #475569 !important; }
+button, input, select, textarea { min-height: 44px; }

@@ -6,10 +6,12 @@ import { nacoesGovernadasPor, obrigacoesAgrupadasPorNacao } from './modelo'
 interface Props {
   estado: Estado
   jogador: Jogador
+  ocultarDinheiro?: boolean
 }
 
-export function CartaoJogador({ estado, jogador }: Props) {
-  const [oculto, setOculto] = useState(false)
+export function CartaoJogador({ estado, jogador, ocultarDinheiro = false }: Props) {
+  const [ocultoLocal, setOculto] = useState(false)
+  const oculto = ocultarDinheiro || ocultoLocal
   const governa = nacoesGovernadasPor(estado, jogador.id)
   const grupos = obrigacoesAgrupadasPorNacao(estado, jogador.id)
 
@@ -53,13 +55,13 @@ export function CartaoJogador({ estado, jogador }: Props) {
           <button
             type="button"
             onClick={() => setOculto((v) => !v)}
-            aria-pressed={oculto}
+            aria-pressed={ocultoLocal}
             aria-label={
               oculto
                 ? `Mostrar dinheiro de ${jogador.nome}`
                 : `Ocultar dinheiro de ${jogador.nome}`
             }
-            className="shrink-0 rounded-md bg-slate-700 px-2 py-1 text-slate-200"
+            className="min-h-11 shrink-0 rounded-md bg-slate-700 px-2 py-1 text-slate-200"
           >
             {oculto ? 'Mostrar' : 'Ocultar'}
           </button>
