@@ -42,3 +42,17 @@ https://hodlfer.github.io/Assistente-Imperial-2030/
 O app é 100% estático (sem backend) — os dados da partida ficam salvos
 apenas no dispositivo (IndexedDB), o que também é necessário para o suporte
 a PWA/offline.
+
+## Instalar no tablet (PWA)
+
+Abra a URL pública em um navegador conectado à internet uma primeira vez; depois
+ela continua disponível offline, inclusive durante a partida.
+
+- **Android (Chrome/Edge):** abra o menu do navegador e escolha **Adicionar à tela inicial** (ou **Instalar app**).
+- **iPad (Safari):** toque em **Compartilhar** → **Adicionar à Tela de Início**.
+
+No iOS, instalar o app também ajuda a proteger a partida contra a limpeza
+automática de dados que o Safari pode fazer em sites usados só no navegador.
+Quando um deploy trouxer uma atualização, o app mostra um aviso para recarregar:
+faça isso apenas em um momento seguro, pois ele **nunca recarrega sozinho** no
+meio de uma partida.

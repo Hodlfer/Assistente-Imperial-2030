@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { PreferenciasMesa } from '../../hooks/usePreferencias'
 import { jogoTerminou } from '../../engine'
 import type { UseGameResult } from '../../hooks/useGame'
 import { FaixaNacoes } from './FaixaNacoes'
@@ -9,23 +10,27 @@ import { PlacarFinal } from './PlacarFinal'
 import { PainelHistorico } from '../historico/PainelHistorico'
 import { ConfirmarDesfazer } from '../historico/ConfirmarDesfazer'
 import { ExportImportModal } from '../persistencia/ExportImportModal'
+import { Estatisticas } from './Estatisticas'
 
 interface Props {
   jogo: UseGameResult
   /** Encerra a partida e volta ao wizard (App descarta o save; enunciado
    *  Sessão 6, item 4). */
   onNovaPartida: () => void
+  preferencias?: PreferenciasMesa
+  atualizarPreferencias?: (parcial: Partial<PreferenciasMesa>) => void
 }
 
 /** Tela principal, aberta durante a partida inteira: exibição fiel do estado
  *  + ajustes manuais de emergência + histórico/undo/export (Sessão 5) + placar
  *  final e pós-jogo (Sessão 6). */
-export function Dashboard({ jogo, onNovaPartida }: Props) {
+export function Dashboard({ jogo, onNovaPartida, preferencias = { tema: 'escuro', ocultarDinheiro: false, manterTelaLigada: false }, atualizarPreferencias = () => {} }: Props) {
   const [ajusteAberto, setAjusteAberto] = useState(false)
   const [historicoAberto, setHistoricoAberto] = useState(false)
   const [confirmarDesfazer, setConfirmarDesfazer] = useState(false)
   const [exportImportAberto, setExportImportAberto] = useState(false)
   const [placarFechado, setPlacarFechado] = useState(false)
+  const [estatisticasAbertas, setEstatisticasAbertas] = useState(false)
   const [terminouAnterior, setTerminouAnterior] = useState(false)
   const estado = jogo.estado
 
@@ -50,6 +55,10 @@ export function Dashboard({ jogo, onNovaPartida }: Props) {
           Assistente Imperial 2030
         </h1>
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
+          <button type="button" onClick={() => atualizarPreferencias({ tema: preferencias.tema === 'escuro' ? 'claro' : 'escuro' })} className="min-h-11 rounded-lg bg-slate-700 px-3 text-sm font-medium text-slate-200">{preferencias.tema === 'escuro' ? '☀️ Tema' : '🌙 Tema'}</button>
+          <button type="button" aria-pressed={preferencias.ocultarDinheiro} onClick={() => atualizarPreferencias({ ocultarDinheiro: !preferencias.ocultarDinheiro })} className="min-h-11 rounded-lg bg-slate-700 px-3 text-sm font-medium text-slate-200">{preferencias.ocultarDinheiro ? 'Mostrar dinheiro' : 'Ocultar dinheiro'}</button>
+          <button type="button" aria-pressed={preferencias.manterTelaLigada} onClick={() => atualizarPreferencias({ manterTelaLigada: !preferencias.manterTelaLigada })} className="min-h-11 rounded-lg bg-slate-700 px-3 text-sm font-medium text-slate-200">{preferencias.manterTelaLigada ? '✓ Tela ligada' : 'Tela ligada'}</button>
+          <button type="button" onClick={() => setEstatisticasAbertas(true)} className="min-h-11 rounded-lg bg-slate-700 px-3 text-sm font-medium text-slate-200">Estatísticas</button>
           {terminou && (
             <button
               type="button"
@@ -84,8 +93,9 @@ export function Dashboard({ jogo, onNovaPartida }: Props) {
       </header>
 
       <FaixaNacoes estado={estado} />
-      <CartoesJogadores estado={estado} />
+      <CartoesJogadores estado={estado} ocultarDinheiro={preferencias.ocultarDinheiro} />
 
+      <Estatisticas estado={estado} aberto={estatisticasAbertas} onFechar={() => setEstatisticasAbertas(false)} />
       <AjusteManual
         estado={estado}
         jogo={jogo}
