@@ -77,10 +77,9 @@ describe('SetupWizard — critério de aceite (4 jogadores)', () => {
     const linhaEuropa = screen.getByText('Europa').closest('tr')!
     expect(linhaEuropa).toHaveTextContent('Jogador 3')
 
-    // Inicia a partida.
+    // Inicia a partida: o wizard some e o dashboard principal assume.
     fireEvent.click(screen.getByText('Iniciar partida'))
-    expect(
-      screen.getByText('Partida iniciada com 4 jogadores.'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Correção manual')).toBeInTheDocument()
+    expect(screen.queryByText('Resumo')).not.toBeInTheDocument()
   })
 })

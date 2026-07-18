@@ -1,4 +1,6 @@
 import type {
+  AjusteManual,
+  AlvoAjusteManual,
   Estado,
   EstadoNacao,
   Jogador,
@@ -104,6 +106,9 @@ function aplicarEfeito(base: Substrato, t: Transacao): Substrato {
       break
     case 'GovernosRecalculados':
       aplicarRecalculoGovernos(sub as Estado)
+      break
+    case 'AjusteManual':
+      efeitoAjusteManual(sub, t)
       break
   }
   return sub
@@ -394,6 +399,71 @@ export function recalcularGovernos(estado: Estado): Estado {
     tipo: 'GovernosRecalculados',
     timestamp: Date.now(),
     rotulo: 'Recálculo de governos',
+  }
+  return aplicarTransacao(estado, t)
+}
+
+// --- Ajuste manual (válvula de escape) ---------------------------------------
+
+function efeitoAjusteManual(sub: Substrato, t: AjusteManual): void {
+  const alvo = t.alvo
+  switch (alvo.tipo) {
+    case 'tesouro':
+      sub.nacoes[alvo.nacao].tesouro += alvo.delta
+      break
+    case 'jogador':
+      acharJogador(sub, alvo.jogadorId).dinheiro += alvo.delta
+      break
+    case 'moverObrigacao': {
+      const nacao = sub.nacoes[alvo.nacao]
+      if (alvo.origemJogadorId) {
+        const origem = acharJogador(sub, alvo.origemJogadorId)
+        const idx = origem.obrigacoes.findIndex(
+          (o) => o.nacao === alvo.nacao && o.valor === alvo.valor,
+        )
+        if (idx < 0) {
+          throw new Error(
+            `${origem.nome} não possui obrigação de ${alvo.valor} de ${alvo.nacao} para mover`,
+          )
+        }
+        origem.obrigacoes.splice(idx, 1)
+      } else if (!removerPrimeiro(nacao.obrigacoesDisponiveis, alvo.valor)) {
+        throw new Error(
+          `Obrigação de ${alvo.valor} de ${alvo.nacao} não está na pilha disponível`,
+        )
+      }
+
+      if (alvo.destinoJogadorId) {
+        acharJogador(sub, alvo.destinoJogadorId).obrigacoes.push({
+          nacao: alvo.nacao,
+          valor: alvo.valor,
+        })
+      } else {
+        nacao.obrigacoesDisponiveis.push(alvo.valor)
+        nacao.obrigacoesDisponiveis.sort((a, b) => a - b)
+      }
+      break
+    }
+  }
+}
+
+/** Correção manual: transação genérica de ajuste (+/− em tesouro ou jogador,
+ *  ou mover uma obrigação), com motivo obrigatório. Saída para situações de
+ *  mesa que o app não modela (docs/ARQUITETURA.md). */
+export function aplicarAjusteManual(
+  estado: Estado,
+  alvo: AlvoAjusteManual,
+  motivo: string,
+): Estado {
+  if (!motivo.trim()) {
+    throw new Error('Correção manual exige um motivo')
+  }
+  const t: AjusteManual = {
+    tipo: 'AjusteManual',
+    timestamp: Date.now(),
+    rotulo: `Correção manual: ${motivo}`,
+    motivo,
+    alvo,
   }
   return aplicarTransacao(estado, t)
 }
