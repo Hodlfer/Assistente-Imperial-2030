@@ -1,10 +1,24 @@
 // Hook que liga o engine (puro, sem React) à UI (docs/ARQUITETURA.md
-// §Engine separado da UI). Por enquanto o estado vive só em memória — a
-// persistência em IndexedDB é da Sessão 5.
+// §Engine separado da UI). A persistência (autosave em IndexedDB) fica em
+// `usePersistencia`, que envolve este hook (Sessão 5).
 
 import { useCallback, useState } from 'react'
-import type { Estado, EstadoNacao, Jogador, Nacao } from '../engine'
-import { criarEstado, desfazer as desfazerEstado, recalcularGovernos } from '../engine'
+import type { Estado, EstadoNacao, Jogador, Nacao, Transacao } from '../engine'
+import {
+  aplicarTransacao,
+  criarEstado,
+  desfazer as desfazerEstado,
+  recalcularGovernos,
+} from '../engine'
+
+interface EstadoInterno {
+  estado: Estado | null
+  /** Transações removidas por `desfazer`, na ordem em que podem ser
+   *  reaplicadas por `refazer`. Zerada sempre que uma nova transação é
+   *  aplicada (docs da Sessão 5: "refazer disponível até que uma nova
+   *  transação seja aplicada"). */
+  pilhaRefazer: Transacao[]
+}
 
 export interface UseGameResult {
   /** `null` antes do wizard finalizar o setup (nenhuma partida em curso). */
@@ -17,8 +31,15 @@ export interface UseGameResult {
    *  Erros de invariante (lançados pelo engine) são capturados e expostos em
    *  `erro`, sem derrubar a UI nem mudar o estado. */
   dispatch: (transacao: (estado: Estado) => Estado) => void
-  /** Desfaz a última transação aplicada (`engine.desfazer`). */
+  /** Desfaz a última transação aplicada (`engine.desfazer`), empilhando-a
+   *  para um `refazer` futuro. */
   desfazer: () => void
+  /** Reaplica a última transação desfeita, se houver. */
+  refazer: () => void
+  /** Há alguma transação além de `PartidaIniciada` para desfazer. */
+  podeDesfazer: boolean
+  /** Há alguma transação desfeita para reaplicar. */
+  podeRefazer: boolean
   /** Inicia a partida: recebe os jogadores e os tesouros iniciais das nações
    *  definidos no wizard, calcula os governos e registra a transação
    *  `PartidaIniciada` como baseline do undo. */
@@ -26,8 +47,8 @@ export interface UseGameResult {
     jogadores: Jogador[],
     nacoesParciais?: Partial<Record<Nacao, Partial<EstadoNacao>>>,
   ) => void
-  /** Substitui o estado atual por um já pronto (ex.: fixture de dev, import de
-   *  JSON — Sessão 5), sem recalcular governos. */
+  /** Substitui o estado atual por um já pronto (ex.: fixture de dev, save
+   *  carregado do IndexedDB, import de JSON), sem recalcular governos. */
   carregarEstado: (estado: Estado) => void
   /** Limpa o erro pendente (ex.: ao fechar o toast). */
   limparErro: () => void
@@ -49,17 +70,20 @@ function mensagemDeErro(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }
 
-export function useGame(): UseGameResult {
-  const [estado, setEstado] = useState<Estado | null>(null)
+export function useGame(estadoInicial: Estado | null = null): UseGameResult {
+  const [interno, setInterno] = useState<EstadoInterno>({
+    estado: estadoInicial,
+    pilhaRefazer: [],
+  })
   const [erro, setErro] = useState<string | null>(null)
 
   const dispatch = useCallback((transacao: (estado: Estado) => Estado) => {
-    setEstado((atual) => {
-      if (!atual) return atual
+    setInterno((atual) => {
+      if (!atual.estado) return atual
       try {
-        const proximo = transacao(atual)
+        const proximo = transacao(atual.estado)
         setErro(null)
-        return proximo
+        return { estado: proximo, pilhaRefazer: [] }
       } catch (e) {
         setErro(mensagemDeErro(e))
         return atual
@@ -68,7 +92,29 @@ export function useGame(): UseGameResult {
   }, [])
 
   const desfazer = useCallback(() => {
-    setEstado((atual) => (atual ? desfazerEstado(atual) : atual))
+    setInterno((atual) => {
+      if (!atual.estado || atual.estado.transacoes.length <= 1) return atual
+      const removida = atual.estado.transacoes[atual.estado.transacoes.length - 1]
+      return {
+        estado: desfazerEstado(atual.estado),
+        pilhaRefazer: [...atual.pilhaRefazer, removida],
+      }
+    })
+  }, [])
+
+  const refazer = useCallback(() => {
+    setInterno((atual) => {
+      if (!atual.estado || atual.pilhaRefazer.length === 0) return atual
+      const transacao = atual.pilhaRefazer[atual.pilhaRefazer.length - 1]
+      try {
+        const proximo = aplicarTransacao(atual.estado, transacao)
+        setErro(null)
+        return { estado: proximo, pilhaRefazer: atual.pilhaRefazer.slice(0, -1) }
+      } catch (e) {
+        setErro(mensagemDeErro(e))
+        return atual
+      }
+    })
   }, [])
 
   const iniciarPartida = useCallback(
@@ -77,7 +123,10 @@ export function useGame(): UseGameResult {
       nacoesParciais: Partial<Record<Nacao, Partial<EstadoNacao>>> = {},
     ) => {
       try {
-        setEstado(estadoInicialComGovernos(jogadores, nacoesParciais))
+        setInterno({
+          estado: estadoInicialComGovernos(jogadores, nacoesParciais),
+          pilhaRefazer: [],
+        })
         setErro(null)
       } catch (e) {
         setErro(mensagemDeErro(e))
@@ -87,17 +136,20 @@ export function useGame(): UseGameResult {
   )
 
   const carregarEstado = useCallback((novoEstado: Estado) => {
-    setEstado(novoEstado)
+    setInterno({ estado: novoEstado, pilhaRefazer: [] })
     setErro(null)
   }, [])
 
   const limparErro = useCallback(() => setErro(null), [])
 
   return {
-    estado,
+    estado: interno.estado,
     erro,
     dispatch,
     desfazer,
+    refazer,
+    podeDesfazer: !!interno.estado && interno.estado.transacoes.length > 1,
+    podeRefazer: interno.pilhaRefazer.length > 0,
     iniciarPartida,
     carregarEstado,
     limparErro,

@@ -11,6 +11,7 @@ import { FimDeJogoModal } from './acoes/FimDeJogoModal'
 
 interface Props {
   jogo: UseGameResult
+  onPedirDesfazer: () => void
 }
 
 type ModalAberto =
@@ -38,7 +39,7 @@ const ITENS: ItemMenu[] = [
   { rotulo: 'Espaços extras', abrir: { tipo: 'simples', acao: 'espacosExtras' } },
 ]
 
-export function AcoesFlutuante({ jogo }: Props) {
+export function AcoesFlutuante({ jogo, onPedirDesfazer }: Props) {
   const [aberto, setAberto] = useState(false)
   const [modal, setModal] = useState<ModalAberto>(null)
   const [fimDeJogo, setFimDeJogo] = useState<Nacao | null>(null)
@@ -47,7 +48,6 @@ export function AcoesFlutuante({ jogo }: Props) {
   if (!estado) return null
 
   const nacaoInicial = nacaoAtivaSugerida(estado)
-  const podeDesfazer = estado.transacoes.length > 1
 
   function abrir(item: ModalAberto) {
     setModal(item)
@@ -75,11 +75,22 @@ export function AcoesFlutuante({ jogo }: Props) {
             ))}
             <button
               type="button"
-              onClick={() => jogo.desfazer()}
-              disabled={!podeDesfazer}
+              onClick={() => {
+                setAberto(false)
+                onPedirDesfazer()
+              }}
+              disabled={!jogo.podeDesfazer}
               className="mt-1 rounded-lg border border-slate-600 px-4 py-2 text-left text-sm text-slate-300 disabled:opacity-40"
             >
               Desfazer última ação
+            </button>
+            <button
+              type="button"
+              onClick={() => jogo.refazer()}
+              disabled={!jogo.podeRefazer}
+              className="rounded-lg border border-slate-600 px-4 py-2 text-left text-sm text-slate-300 disabled:opacity-40"
+            >
+              Refazer
             </button>
           </div>
         )}
