@@ -16,6 +16,7 @@ import type {
 } from './types'
 import { NACOES, NOMES_NACAO } from '../data/regras'
 import { fatorDePoder } from './poder'
+import { jogoTerminou } from './pontuacao'
 import {
   comprarObrigacao,
   movimentoBanco,
@@ -224,6 +225,21 @@ function construirInvestidor(
   escolhaPortador: EscolhaInvestimento,
   investimentosBanco: Record<string, EscolhaInvestimento>,
 ): AcaoRondel {
+  // Caso especial do fim de jogo (docs/REGRAS.md §Regras monetárias, "Fim aos
+  // 25 PP: se ocorrer ao PULAR o Investidor, ignorar etapas 2–3"; enunciado
+  // Sessão 6, item 1): se o jogo já terminou (alguma nação com 25 PP) e a nação
+  // apenas PULOU o espaço de Investidor, as etapas 2–3 (investimentos) NÃO
+  // acontecem — os juros da etapa 1 também não, pois só ocorrem ao parar.
+  if (!comJuros && jogoTerminou(estado)) {
+    return comporAcao(
+      estado,
+      'investidorPassar',
+      nacaoAtiva,
+      `Investidor — passou, jogo encerrado (${nomeNacao(nacaoAtiva)})`,
+      (e) => e,
+    )
+  }
+
   const portador = portadorCarta(estado)
   if (!portador) {
     throw new Error('Nenhum jogador tem a carta de Investidor')

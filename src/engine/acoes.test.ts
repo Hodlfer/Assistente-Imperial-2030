@@ -200,6 +200,56 @@ describe('Investidor — ponta a ponta (parar)', () => {
   })
 })
 
+describe('Fim de jogo ao PULAR o Investidor (caso especial do manual)', () => {
+  // Se os 25 PP já foram atingidos e a nação apenas passou por cima do
+  // Investidor, as etapas 2–3 (investimentos) NÃO acontecem — nem os juros da
+  // etapa 1, que só ocorrem ao parar (docs/REGRAS.md; enunciado Sessão 6, item 1).
+  function cenario() {
+    const a = jogador({
+      id: 'a',
+      nome: 'A',
+      assento: 0,
+      dinheiro: 20,
+      temCartaInvestidor: true,
+      obrigacoes: [{ nacao: 'china', valor: 4 }],
+    })
+    const b = jogador({ id: 'b', nome: 'B', assento: 1, dinheiro: 10, temBancoSuico: true })
+    // EUA já com 25 PP: o jogo terminou.
+    return criarEstado([a, b], { eua: { pontosPoder: 25 }, china: { tesouro: 0 } })
+  }
+
+  it('passar por cima com o jogo já encerrado não faz investimentos nem passa a carta', () => {
+    const estado = cenario()
+
+    const acao = construirInvestidorPassar(
+      estado,
+      'russia',
+      { tipo: 'upgrade', nacao: 'china', valorDevolvido: 4, valorNovo: 12 },
+      { b: { tipo: 'comprar', nacao: 'brasil', valor: 6 } },
+    )
+    // Nenhum passo: etapas 2–3 ignoradas.
+    expect(acao.passos).toHaveLength(0)
+
+    const depois = aplicarAcaoRondel(estado, acao)
+    const a = depois.jogadores.find((j) => j.id === 'a')!
+    const b = depois.jogadores.find((j) => j.id === 'b')!
+
+    // Portador NÃO recebeu os +2, carta NÃO passou, nenhum investimento aplicado.
+    expect(a.dinheiro).toBe(20)
+    expect(a.temCartaInvestidor).toBe(true)
+    expect(a.obrigacoes).toEqual([{ nacao: 'china', valor: 4 }])
+    expect(b.dinheiro).toBe(10)
+    expect(depois.nacoes.brasil.tesouro).toBe(0)
+  })
+
+  it('parar no espaço ainda funciona normalmente mesmo com o jogo encerrado', () => {
+    const estado = cenario()
+    const acao = construirInvestidorParar(estado, 'russia', { tipo: 'passar' }, {})
+    // Ao parar, o portador ainda recebe os +2 (etapas seguem).
+    expect(acao.passos.length).toBeGreaterThan(0)
+  })
+})
+
 describe('Tributação como ação do rondel (cenário C do manual)', () => {
   it('EUA 3 fábricas + 5 bandeiras + 3 unidades', () => {
     const g = jogador({ id: 'g' })

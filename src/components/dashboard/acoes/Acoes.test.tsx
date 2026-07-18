@@ -31,6 +31,7 @@ function jogoStub(estado: Estado): UseGameResult {
     podeRefazer: false,
     iniciarPartida: vi.fn(),
     carregarEstado: vi.fn(),
+    reiniciar: vi.fn(),
     limparErro: vi.fn(),
   }
 }
@@ -42,13 +43,7 @@ describe('Critério de aceite C — tributação EUA na UI', () => {
     const jogo = jogoStub(estado)
 
     render(
-      <TributacaoModal
-        estado={estado}
-        jogo={jogo}
-        nacaoInicial="eua"
-        onFechar={() => {}}
-        onFimDeJogo={() => {}}
-      />,
+      <TributacaoModal estado={estado} jogo={jogo} nacaoInicial="eua" onFechar={() => {}} />,
     )
 
     fireEvent.change(screen.getByLabelText('Fábricas não-ocup.'), { target: { value: '3' } })

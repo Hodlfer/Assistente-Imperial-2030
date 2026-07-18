@@ -83,7 +83,13 @@ function App() {
   return (
     <main className="min-h-screen bg-slate-900 text-slate-100">
       {persistencia.avisoSalvamento && <AvisoSalvamento mensagem={persistencia.avisoSalvamento} />}
-      <Dashboard jogo={jogo} />
+      <Dashboard
+        jogo={jogo}
+        onNovaPartida={async () => {
+          await persistencia.descartarSave()
+          jogo.reiniciar()
+        }}
+      />
     </main>
   )
 }

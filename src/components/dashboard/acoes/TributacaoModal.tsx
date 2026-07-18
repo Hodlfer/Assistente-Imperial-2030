@@ -16,12 +16,13 @@ interface Props {
   jogo: UseGameResult
   nacaoInicial: Nacao
   onFechar: () => void
-  onFimDeJogo: (nacao: Nacao) => void
 }
 
 /** Tributação: 4 etapas numa tela, com preview detalhado dos casos de tesouro
- *  insuficiente (docs/REGRAS.md §Regras monetárias; enunciado Sessão 4, item 3). */
-export function TributacaoModal({ estado, jogo, nacaoInicial, onFechar, onFimDeJogo }: Props) {
+ *  insuficiente (docs/REGRAS.md §Regras monetárias; enunciado Sessão 4, item 3).
+ *  Ao atingir 25 PP o fim de jogo é detectado no Dashboard (deriva do estado),
+ *  então aqui basta aplicar a tributação e fechar. */
+export function TributacaoModal({ estado, jogo, nacaoInicial, onFechar }: Props) {
   const [nacao, setNacao] = useState<Nacao>(nacaoInicial)
   const [fabricas, setFabricas] = useState(0)
   const [bandeiras, setBandeiras] = useState(0)
@@ -46,9 +47,7 @@ export function TributacaoModal({ estado, jogo, nacaoInicial, onFechar, onFimDeJ
     jogo.dispatch((e) =>
       aplicarAcaoRondel(e, construirTributacao(e, nacao, fabricas, bandeiras, unidades)),
     )
-    const ppFinal = previa.depois.nacoes[nacao].pontosPoder
     onFechar()
-    if (ppFinal >= PP_MAXIMO) onFimDeJogo(nacao)
   }
 
   const r = previa.resultado
