@@ -14,6 +14,16 @@ export const NACOES: readonly Nacao[] = [
   'europa',
 ] as const
 
+/** Nomes de exibição das nações (docs/REGRAS.md §Nações). */
+export const NOMES_NACAO: Record<Nacao, string> = {
+  russia: 'Rússia',
+  china: 'China',
+  india: 'Índia',
+  brasil: 'Brasil',
+  eua: 'EUA',
+  europa: 'Europa',
+}
+
 // --- Obrigações (docs/REGRAS.md §Obrigações) ---------------------------------
 // ⚠️ Linha valor→juros validar contra as cartas físicas antes do Investidor.
 // Âncoras confirmadas no manual: valor 12 → juros 5; valor 16 → juros 6.

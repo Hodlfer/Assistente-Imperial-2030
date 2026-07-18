@@ -40,7 +40,7 @@ export function Dashboard({ jogo }: Props) {
         aberto={ajusteAberto}
         onFechar={() => setAjusteAberto(false)}
       />
-      <AcoesFlutuante />
+      <AcoesFlutuante jogo={jogo} />
     </div>
   )
 }

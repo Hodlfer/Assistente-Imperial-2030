@@ -1,10 +1,13 @@
 import type {
+  AcaoRondel,
   AjusteManual,
   AlvoAjusteManual,
+  CartaInvestidorPassada,
   Estado,
   EstadoNacao,
   Jogador,
   JurosPagos,
+  MovimentoBanco,
   Nacao,
   ObrigacaoComprada,
   ObrigacaoTrocada,
@@ -88,6 +91,14 @@ export function desfazer(estado: Estado): Estado {
  *  Recalcula sempre a partir dos inputs da transação (replay-safe). */
 function aplicarEfeito(base: Substrato, t: Transacao): Substrato {
   const sub: Substrato = structuredClone(base)
+  aplicarEfeitoEmSub(sub, t)
+  return sub
+}
+
+/** Aplica o efeito da transação MUTANDO `sub` in-place (já clonado por quem
+ *  chama). Uma ação composta (`AcaoRondel`) replica cada passo em sequência
+ *  sobre o mesmo substrato, o que mantém tudo replay-safe. */
+function aplicarEfeitoEmSub(sub: Substrato, t: Transacao): void {
   switch (t.tipo) {
     case 'PartidaIniciada':
       // Marcador; o snapshot já é o ponto de partida do fold.
@@ -105,13 +116,21 @@ function aplicarEfeito(base: Substrato, t: Transacao): Substrato {
       mutarJuros(sub, t.nacao, planejarJuros(sub, t.nacao))
       break
     case 'GovernosRecalculados':
-      aplicarRecalculoGovernos(sub as Estado)
+      aplicarRecalculoGovernos(sub as Estado, t.portadorId)
+      break
+    case 'MovimentoBanco':
+      efeitoMovimentoBanco(sub, t)
+      break
+    case 'CartaInvestidorPassada':
+      efeitoCartaInvestidor(sub, t)
+      break
+    case 'AcaoRondel':
+      for (const passo of t.passos) aplicarEfeitoEmSub(sub, passo)
       break
     case 'AjusteManual':
       efeitoAjusteManual(sub, t)
       break
   }
-  return sub
 }
 
 // --- Helpers de substrato ----------------------------------------------------
@@ -393,14 +412,77 @@ export function pagarJuros(estado: Estado, nacao: Nacao): Estado {
 // --- Recálculo de governos (fim do Investidor) -------------------------------
 
 /** Recalcula o governo das 6 nações e redistribui o Banco Suíço, registrando a
- *  transação. Só deve ser chamada ao fim da ação de Investidor. */
-export function recalcularGovernos(estado: Estado): Estado {
+ *  transação. Só deve ser chamada ao fim da ação de Investidor. `portadorId`
+ *  habilita o desempate horário a partir do portador da carta de Investidor. */
+export function recalcularGovernos(estado: Estado, portadorId?: string): Estado {
   const t: Transacao = {
     tipo: 'GovernosRecalculados',
     timestamp: Date.now(),
     rotulo: 'Recálculo de governos',
+    ...(portadorId ? { portadorId } : {}),
   }
   return aplicarTransacao(estado, t)
+}
+
+// --- Movimento de banco (Fábrica, Importação, +2, espaços extras) ------------
+
+function efeitoMovimentoBanco(sub: Substrato, t: MovimentoBanco): void {
+  if (t.alvo.tipo === 'tesouro') {
+    sub.nacoes[t.alvo.nacao].tesouro += t.delta
+  } else {
+    acharJogador(sub, t.alvo.jogadorId).dinheiro += t.delta
+  }
+}
+
+/** Débito/crédito simples contra o banco (docs/REGRAS.md §Banco sem saldo).
+ *  `delta` já embute a direção (negativo = paga ao banco). */
+export function movimentoBanco(
+  estado: Estado,
+  alvo: MovimentoBanco['alvo'],
+  delta: number,
+  rotulo: string,
+): Estado {
+  const t: MovimentoBanco = {
+    tipo: 'MovimentoBanco',
+    timestamp: Date.now(),
+    rotulo,
+    alvo,
+    delta,
+  }
+  return aplicarTransacao(estado, t)
+}
+
+// --- Passagem da carta de Investidor -----------------------------------------
+
+function efeitoCartaInvestidor(sub: Substrato, t: CartaInvestidorPassada): void {
+  acharJogador(sub, t.deJogadorId).temCartaInvestidor = false
+  acharJogador(sub, t.paraJogadorId).temCartaInvestidor = true
+}
+
+/** Passa a carta de Investidor de um jogador ao próximo (docs/REGRAS.md
+ *  §Regras monetárias, ação de Investidor). */
+export function passarCartaInvestidor(
+  estado: Estado,
+  deJogadorId: string,
+  paraJogadorId: string,
+): Estado {
+  const t: CartaInvestidorPassada = {
+    tipo: 'CartaInvestidorPassada',
+    timestamp: Date.now(),
+    rotulo: 'Carta de Investidor passada',
+    deJogadorId,
+    paraJogadorId,
+  }
+  return aplicarTransacao(estado, t)
+}
+
+// --- Ação composta do rondel -------------------------------------------------
+
+/** Registra uma ação do rondel como UMA transação composta (desfazível de uma
+ *  vez). `passos` é a lista de transações primitivas já construída sobre um
+ *  estado espelho (ver src/engine/acoes.ts). */
+export function aplicarAcaoRondel(estado: Estado, acao: AcaoRondel): Estado {
+  return aplicarTransacao(estado, acao)
 }
 
 // --- Ajuste manual (válvula de escape) ---------------------------------------
