@@ -2,9 +2,9 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import App from '../../App'
 
-function carregarFixture() {
+async function carregarFixture() {
   render(<App />)
-  fireEvent.click(screen.getByText('Carregar exemplo (dev): 6 jogadores'))
+  fireEvent.click(await screen.findByText('Carregar exemplo (dev): 6 jogadores'))
 }
 
 /** As 6 nações aparecem tanto no cartão da nação quanto nos cartões de
@@ -15,8 +15,8 @@ function cartaoDaNacao(ariaLabelAviso: string) {
 }
 
 describe('Dashboard — critério de aceite (6 jogadores, fixture de dev)', () => {
-  it('mostra as 6 nações com tesouro, poder e governo', () => {
-    carregarFixture()
+  it('mostra as 6 nações com tesouro, poder e governo', async () => {
+    await carregarFixture()
 
     for (const nome of ['Rússia', 'China', 'Índia', 'Brasil', 'EUA', 'Europa']) {
       expect(screen.getAllByText(nome).length).toBeGreaterThan(0)
@@ -29,8 +29,8 @@ describe('Dashboard — critério de aceite (6 jogadores, fixture de dev)', () =
     expect(screen.getByText('Fim de jogo próximo')).toBeInTheDocument()
   })
 
-  it('sinaliza controle latente (Rússia e Brasil) sem mudar o governante exibido', () => {
-    carregarFixture()
+  it('sinaliza controle latente (Rússia e Brasil) sem mudar o governante exibido', async () => {
+    await carregarFixture()
 
     expect(screen.getByLabelText('Controle pendente de Rússia')).toBeInTheDocument()
     expect(screen.getByLabelText('Controle pendente de Brasil')).toBeInTheDocument()
@@ -42,8 +42,8 @@ describe('Dashboard — critério de aceite (6 jogadores, fixture de dev)', () =
     expect(within(cartaoRussia).getByText('Alexandre da Silva Nogueira Filho')).toBeInTheDocument()
   })
 
-  it('mostra os 6 jogadores, incluindo nomes longos, com badges e destaque de governo', () => {
-    carregarFixture()
+  it('mostra os 6 jogadores, incluindo nomes longos, com badges e destaque de governo', async () => {
+    await carregarFixture()
 
     for (const nome of [
       'Alexandre da Silva Nogueira Filho',
@@ -64,8 +64,8 @@ describe('Dashboard — critério de aceite (6 jogadores, fixture de dev)', () =
     expect(screen.getByText('Governa: Europa')).toBeInTheDocument()
   })
 
-  it('toggle de ocultar dinheiro é por jogador, independente, e começa visível', () => {
-    carregarFixture()
+  it('toggle de ocultar dinheiro é por jogador, independente, e começa visível', async () => {
+    await carregarFixture()
 
     fireEvent.click(screen.getByLabelText('Ocultar dinheiro de Beatriz'))
 
@@ -74,8 +74,8 @@ describe('Dashboard — critério de aceite (6 jogadores, fixture de dev)', () =
     expect(screen.getByLabelText('Ocultar dinheiro de Diana')).toBeInTheDocument()
   })
 
-  it('abre "Correção manual" e aplica um ajuste de tesouro pelo pipeline de transações', () => {
-    carregarFixture()
+  it('abre "Correção manual" e aplica um ajuste de tesouro pelo pipeline de transações', async () => {
+    await carregarFixture()
 
     const cartaoRussiaAntes = cartaoDaNacao('Controle pendente de Rússia')
     const linhaTesouroAntes = within(cartaoRussiaAntes).getByText('Tesouro')
@@ -101,15 +101,15 @@ describe('Dashboard — critério de aceite (6 jogadores, fixture de dev)', () =
     expect(linhaTesouroDepois.parentElement).toHaveTextContent('30') // 25 + 5
   })
 
-  it('bloqueia a correção manual sem motivo', () => {
-    carregarFixture()
+  it('bloqueia a correção manual sem motivo', async () => {
+    await carregarFixture()
 
     fireEvent.click(screen.getByText('Correção manual'))
     expect(screen.getByText('Aplicar correção')).toBeDisabled()
   })
 
-  it('abre o menu do botão flutuante "Ações" com as ações do rondel ativas', () => {
-    carregarFixture()
+  it('abre o menu do botão flutuante "Ações" com as ações do rondel ativas', async () => {
+    await carregarFixture()
 
     fireEvent.click(screen.getByText('Ações'))
     expect(screen.getByText('Fábrica')).toBeEnabled()

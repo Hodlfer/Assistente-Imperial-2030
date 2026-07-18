@@ -14,11 +14,11 @@ function ativarJogador(nome: string) {
 }
 
 describe('SetupWizard — critério de aceite (4 jogadores)', () => {
-  it('completa o setup do início ao fim terminando no resumo com governos corretos', () => {
+  it('completa o setup do início ao fim terminando no resumo com governos corretos', async () => {
     render(<App />)
 
     // Etapa 1 — Jogadores: parte de 2, adiciona até 4.
-    expect(screen.getByText('Jogadores')).toBeInTheDocument()
+    expect(await screen.findByText('Jogadores')).toBeInTheDocument()
     fireEvent.click(screen.getByText('+ Adicionar jogador'))
     fireEvent.click(screen.getByText('+ Adicionar jogador'))
     expect(screen.getByDisplayValue('Jogador 4')).toBeInTheDocument()
