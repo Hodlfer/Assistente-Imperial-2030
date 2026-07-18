@@ -10,6 +10,7 @@ import type {
   Estado,
   JurosPagos,
   MovimentoBanco,
+  Nacao,
   Transacao,
   TipoAcaoRondel,
   TributacaoAplicada,
@@ -67,6 +68,8 @@ function tituloDe(t: Transacao, nomes: BuscaNome): string {
       return `Juros — ${NOMES_NACAO[t.nacao]}`
     case 'GovernosRecalculados':
       return 'Recálculo de governos'
+    case 'SituacaoMapaAtualizada':
+      return 'Situação do mapa atualizada'
     case 'MovimentoBanco':
       return t.rotulo
     case 'CartaInvestidorPassada':
@@ -183,6 +186,10 @@ function flagsDe(t: Transacao, antes: Estado, depois: Estado, nomes: BuscaNome):
       return flagsJuros(t, antes, nomes)
     case 'GovernosRecalculados':
       return flagsGovernos(antes, depois, nomes)
+    case 'SituacaoMapaAtualizada':
+      return Object.entries(t.alteracoes).map(([nacao, situacao]) =>
+        `${NOMES_NACAO[nacao as Nacao]}: ${situacao!.fabricasTributaveis} fábr. · ${situacao!.territorios} terr. · ${situacao!.unidadesMilitares} unid.`,
+      )
     case 'MovimentoBanco':
       return [flagMovimento(t, nomes)]
     case 'CartaInvestidorPassada':

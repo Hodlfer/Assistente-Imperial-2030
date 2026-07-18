@@ -31,7 +31,10 @@ export function ExportImportModal({ estado, aberto, onFechar, onImportar }: Prop
   const [texto, setTexto] = useState('')
   const [erroImport, setErroImport] = useState<string | null>(null)
   const [copiado, setCopiado] = useState(false)
-  const [confirmarSobrescrever, setConfirmarSobrescrever] = useState<Estado | null>(null)
+  const [importacaoPendente, setImportacaoPendente] = useState<{
+    estado: Estado
+    migrada: boolean
+  } | null>(null)
   const arquivoRef = useRef<HTMLInputElement>(null)
 
   if (!aberto) return null
@@ -59,18 +62,18 @@ export function ExportImportModal({ estado, aberto, onFechar, onImportar }: Prop
       setErroImport(resultado.erro)
       return
     }
-    if (estado) {
-      // Já há uma partida em curso: confirmar antes de sobrescrever.
-      setConfirmarSobrescrever(resultado.estado)
+    if (estado || resultado.migrada) {
+      // Confirma tanto a sobrescrita quanto os valores estimados de um save v1.
+      setImportacaoPendente({ estado: resultado.estado, migrada: resultado.migrada })
     } else {
       onImportar(resultado.estado)
     }
   }
 
   function confirmarImportacao() {
-    if (!confirmarSobrescrever) return
-    onImportar(confirmarSobrescrever)
-    setConfirmarSobrescrever(null)
+    if (!importacaoPendente) return
+    onImportar(importacaoPendente.estado)
+    setImportacaoPendente(null)
     setTexto('')
   }
 
@@ -129,16 +132,24 @@ export function ExportImportModal({ estado, aberto, onFechar, onImportar }: Prop
           </div>
         )}
 
-        {confirmarSobrescrever ? (
-          <div className="flex flex-col gap-2 rounded-lg border border-red-700 bg-red-950/30 p-3">
-            <p className="text-sm text-red-200">
-              Isso substitui a partida em curso pela importada. A partida atual será perdida se
-              não tiver sido exportada.
-            </p>
+        {importacaoPendente ? (
+          <div className="flex flex-col gap-2 rounded-lg border border-amber-600 bg-amber-950/30 p-3">
+            {estado && (
+              <p className="text-sm text-red-200">
+                Isso substitui a partida em curso pela importada. A partida atual será perdida se
+                não tiver sido exportada.
+              </p>
+            )}
+            {importacaoPendente.migrada && (
+              <p className="text-sm text-amber-200">
+                Este save v1 foi atualizado: a situação do mapa foi estimada pela última
+                Tributação de cada nação. Confira fábricas, territórios e unidades antes de jogar.
+              </p>
+            )}
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setConfirmarSobrescrever(null)}
+                onClick={() => setImportacaoPendente(null)}
                 className="flex-1 rounded-lg bg-slate-700 px-3 py-2 text-sm text-slate-200"
               >
                 Cancelar
@@ -146,9 +157,9 @@ export function ExportImportModal({ estado, aberto, onFechar, onImportar }: Prop
               <button
                 type="button"
                 onClick={confirmarImportacao}
-                className="flex-1 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white"
+                className="flex-1 rounded-lg bg-amber-600 px-3 py-2 text-sm font-semibold text-white"
               >
-                Substituir partida atual
+                {estado ? 'Substituir partida atual' : 'Importar e conferir'}
               </button>
             </div>
           </div>

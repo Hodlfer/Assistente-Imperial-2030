@@ -7,7 +7,7 @@ import type { Estado } from '../engine'
 
 /** Versão atual do formato salvo. Incrementar sempre que a forma de `Estado`
  *  mudar de um jeito que quebre saves antigos. */
-export const SCHEMA_VERSION = 1 as const
+export const SCHEMA_VERSION = 2 as const
 
 export interface PartidaSalva {
   schemaVersion: number

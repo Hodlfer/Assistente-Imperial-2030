@@ -11,7 +11,8 @@ import {
 } from '../persistence/db'
 import { carregarEspelho, limparEspelho, salvarEspelho } from '../persistence/localStorageMirror'
 import { solicitarPersistencia, type ResultadoPersistencia } from '../persistence/storagePersist'
-import { SCHEMA_VERSION, type PartidaSalva } from '../persistence/tipos'
+import type { PartidaSalva } from '../persistence/tipos'
+import { migrarPartidaSalva } from '../persistence/exportImport'
 
 export interface UsePersistenciaResult {
   /** Ainda checando IndexedDB/espelho por um save existente. */
@@ -28,6 +29,8 @@ export interface UsePersistenciaResult {
   descartarSave: () => Promise<void>
   /** Aviso persistente quando a última gravação falhou. */
   avisoSalvamento: string | null
+  /** Aviso de que um save antigo recebeu uma fotografia estimada do mapa. */
+  avisoMigracao: string | null
   /** Resultado de `navigator.storage.persist()`, solicitado na primeira
    *  gravação bem-sucedida. `null` antes da primeira gravação. */
   persistencia: ResultadoPersistencia | null
@@ -38,6 +41,7 @@ export function usePersistencia(jogo: UseGameResult): UsePersistenciaResult {
   const [saveEncontrado, setSaveEncontrado] = useState<PartidaSalva | null>(null)
   const [saveBrutoIncompativel, setSaveBrutoIncompativel] = useState<string | null>(null)
   const [avisoSalvamento, setAvisoSalvamento] = useState<string | null>(null)
+  const [avisoMigracao, setAvisoMigracao] = useState<string | null>(null)
   const [persistencia, setPersistencia] = useState<ResultadoPersistencia | null>(null)
   const persistSolicitadaRef = useRef(false)
 
@@ -52,10 +56,16 @@ export function usePersistencia(jogo: UseGameResult): UsePersistenciaResult {
         setCarregando(false)
         return
       }
-      if (registro.schemaVersion !== SCHEMA_VERSION) {
+      const migracao = migrarPartidaSalva(registro)
+      if (!migracao.sucesso) {
         setSaveBrutoIncompativel(JSON.stringify(registro, null, 2))
       } else {
-        setSaveEncontrado(registro)
+        setSaveEncontrado(migracao.partida)
+        if (migracao.migrada) {
+          setAvisoMigracao(
+            'Save atualizado: a situação do mapa foi estimada pela última Tributação. Confira os números antes da próxima prévia.',
+          )
+        }
       }
       setCarregando(false)
     }
@@ -105,6 +115,7 @@ export function usePersistencia(jogo: UseGameResult): UsePersistenciaResult {
     limparEspelho()
     setSaveEncontrado(null)
     setSaveBrutoIncompativel(null)
+    setAvisoMigracao(null)
   }, [])
 
   return {
@@ -114,6 +125,7 @@ export function usePersistencia(jogo: UseGameResult): UsePersistenciaResult {
     continuar,
     descartarSave,
     avisoSalvamento,
+    avisoMigracao,
     persistencia,
   }
 }

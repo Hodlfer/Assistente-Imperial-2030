@@ -28,6 +28,76 @@ export function criarObrigacoesVazias(): ObrigacoesEscolhidas {
   return obj
 }
 
+/** Obrigação de 2 indicada no verso de cada carta de controle. A própria
+ * carta também entrega a obrigação de 9 da nação impressa. */
+export const OBRIGACAO_2_POR_CARTAO: Record<Nacao, Nacao> = {
+  russia: 'europa',
+  china: 'eua',
+  india: 'brasil',
+  brasil: 'china',
+  eua: 'russia',
+  europa: 'india',
+}
+
+function embaralhar<T>(itens: readonly T[], rng: () => number): T[] {
+  const resultado = [...itens]
+  for (let i = resultado.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1))
+    const temporario = resultado[i]
+    resultado[i] = resultado[j]
+    resultado[j] = temporario
+  }
+  return resultado
+}
+
+function cartoesIniciaisPorJogador(
+  quantidade: number,
+  rng: () => number,
+): Nacao[][] {
+  if (quantidade >= 4 && quantidade <= 6) {
+    return embaralhar(NACOES, rng).slice(0, quantidade).map((nacao) => [nacao])
+  }
+  if (quantidade === 3) {
+    const pares: Record<Nacao, Nacao> = {
+      india: 'eua',
+      russia: 'brasil',
+      china: 'europa',
+      brasil: 'russia',
+      eua: 'india',
+      europa: 'china',
+    }
+    return embaralhar<Nacao>(['india', 'russia', 'china'], rng).map((nacao) => [
+      nacao,
+      pares[nacao],
+    ])
+  }
+  if (quantidade === 2) {
+    return embaralhar<Nacao>(['china', 'russia'], rng).map((nacao) =>
+      nacao === 'china'
+        ? ['china', 'europa', 'brasil']
+        : ['russia', 'india', 'eua'],
+    )
+  }
+  throw new Error('O sorteio oficial exige entre 2 e 6 jogadores')
+}
+
+/** Sorteia as cartas de controle e converte o verso de cada uma nas duas
+ * obrigações iniciais correspondentes. `rng` é injetável para testes. */
+export function sortearObrigacoesIniciais(
+  jogadores: JogadorDraft[],
+  rng: () => number = Math.random,
+): ObrigacoesEscolhidas {
+  const resultado = criarObrigacoesVazias()
+  const cartoes = cartoesIniciaisPorJogador(jogadores.length, rng)
+  jogadores.forEach((jogador, indice) => {
+    for (const cartao of cartoes[indice]) {
+      resultado[cartao][9] = jogador.id
+      resultado[OBRIGACAO_2_POR_CARTAO[cartao]][2] = jogador.id
+    }
+  })
+  return resultado
+}
+
 /** Soma dos valores de obrigação que um jogador escolheu, em todas as nações. */
 export function totalEscolhidoPeloJogador(
   obrigacoes: ObrigacoesEscolhidas,

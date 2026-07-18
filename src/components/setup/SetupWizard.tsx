@@ -6,7 +6,7 @@ import { EtapaObrigacoes } from './EtapaObrigacoes'
 import { EtapaInvestidor } from './EtapaInvestidor'
 import { EtapaResumo } from './EtapaResumo'
 import type { JogadorDraft, ObrigacoesEscolhidas } from './modelo'
-import { criarObrigacoesVazias, jogadorPadrao } from './modelo'
+import { criarObrigacoesVazias, jogadorPadrao, sortearObrigacoesIniciais } from './modelo'
 import { capitalInicial } from '../../data/regras'
 
 const ETAPAS = [
@@ -77,6 +77,10 @@ export function SetupWizard({ jogo }: Props) {
           jogadores={jogadores}
           obrigacoes={obrigacoes}
           onMudar={setObrigacoes}
+          onSortear={() => {
+            setObrigacoes(sortearObrigacoesIniciais(jogadores))
+            setCartaInvestidorId(null)
+          }}
           onAvancar={avancar}
           onVoltar={voltar}
         />

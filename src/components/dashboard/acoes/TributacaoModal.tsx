@@ -24,13 +24,26 @@ interface Props {
  *  então aqui basta aplicar a tributação e fechar. */
 export function TributacaoModal({ estado, jogo, nacaoInicial, onFechar }: Props) {
   const [nacao, setNacao] = useState<Nacao>(nacaoInicial)
-  const [fabricas, setFabricas] = useState(0)
-  const [bandeiras, setBandeiras] = useState(0)
-  const [unidades, setUnidades] = useState(0)
+  const inicial = estado.nacoes[nacaoInicial].situacao
+  const [fabricas, setFabricas] = useState(inicial.fabricasTributaveis)
+  const [bandeiras, setBandeiras] = useState(inicial.territorios)
+  const [unidades, setUnidades] = useState(inicial.unidadesMilitares)
+
+  function mudarNacao(proxima: Nacao) {
+    const situacao = estado.nacoes[proxima].situacao
+    setNacao(proxima)
+    setFabricas(situacao.fabricasTributaveis)
+    setBandeiras(situacao.territorios)
+    setUnidades(situacao.unidadesMilitares)
+  }
 
   const previa = useMemo(() => {
     try {
-      const acao = construirTributacao(estado, nacao, fabricas, bandeiras, unidades)
+      const acao = construirTributacao(estado, nacao, fabricas, bandeiras, unidades, {
+        fabricasTributaveis: fabricas,
+        territorios: bandeiras,
+        unidadesMilitares: unidades,
+      })
       const trib = tributacaoDaAcao(acao)!
       const depois = aplicarAcaoRondel(estado, acao)
       return { resultado: trib.resultado, depois, erro: null as string | null }
@@ -45,7 +58,11 @@ export function TributacaoModal({ estado, jogo, nacaoInicial, onFechar }: Props)
   function confirmar() {
     if (previa.erro || !previa.depois) return
     jogo.dispatch((e) =>
-      aplicarAcaoRondel(e, construirTributacao(e, nacao, fabricas, bandeiras, unidades)),
+      aplicarAcaoRondel(e, construirTributacao(e, nacao, fabricas, bandeiras, unidades, {
+        fabricasTributaveis: fabricas,
+        territorios: bandeiras,
+        unidadesMilitares: unidades,
+      })),
     )
     onFechar()
   }
@@ -72,11 +89,11 @@ export function TributacaoModal({ estado, jogo, nacaoInicial, onFechar }: Props)
         </button>
       }
     >
-      <SeletorNacao valor={nacao} onChange={setNacao} />
+      <SeletorNacao valor={nacao} onChange={mudarNacao} />
 
       <div className="grid grid-cols-3 gap-2">
         <CampoNumero rotulo="Fábricas não-ocup." valor={fabricas} onChange={setFabricas} />
-        <CampoNumero rotulo="Bandeiras" valor={bandeiras} onChange={setBandeiras} />
+        <CampoNumero rotulo="Territórios" valor={bandeiras} onChange={setBandeiras} />
         <CampoNumero rotulo="Unid. militares" valor={unidades} onChange={setUnidades} />
       </div>
 

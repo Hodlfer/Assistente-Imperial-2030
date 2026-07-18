@@ -37,11 +37,11 @@ export const CORES_NACAO: Record<Nacao, CorNacao> = {
   },
   india: {
     nome: 'Índia',
-    bg: 'bg-slate-700 text-white',
-    texto: 'text-slate-400',
-    borda: 'border-slate-500',
-    bgSuave: 'bg-slate-800/60',
-    hex: '#334155',
+    bg: 'nation-india-solid',
+    texto: 'nation-india-text',
+    borda: 'nation-india-border',
+    bgSuave: 'nation-india-soft',
+    hex: '#a8b1bd',
   },
   brasil: {
     nome: 'Brasil',

@@ -89,6 +89,7 @@ function App() {
   return (
     <main className={`min-h-screen bg-slate-900 text-slate-100 ${preferencias.tema === 'claro' ? 'theme-light' : 'theme-dark'}`}>
       {persistencia.avisoSalvamento && <AvisoSalvamento mensagem={persistencia.avisoSalvamento} />}
+      {persistencia.avisoMigracao && <AvisoSalvamento mensagem={persistencia.avisoMigracao} />}
       <Dashboard
         jogo={jogo}
         preferencias={preferencias}

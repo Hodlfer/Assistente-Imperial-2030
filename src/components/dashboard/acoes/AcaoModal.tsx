@@ -7,14 +7,15 @@ interface Props {
   /** Rodapé (normalmente o botão de confirmar). */
   rodape?: ReactNode
   erro?: string | null
+  largura?: 'normal' | 'larga'
 }
 
 /** Casca comum dos modais de ação: overlay + cartão rolável + cabeçalho, para o
  *  padrão "selecionar nação → inputs → preview → confirmar" (enunciado Sessão 4). */
-export function AcaoModal({ titulo, onFechar, children, rodape, erro }: Props) {
+export function AcaoModal({ titulo, onFechar, children, rodape, erro, largura = 'normal' }: Props) {
   return (
     <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 p-3 sm:p-4">
-      <div className="flex max-h-[92vh] w-full max-w-lg flex-col rounded-xl bg-slate-800 text-sm">
+      <div className={`flex max-h-[92vh] w-full flex-col rounded-xl bg-slate-800 text-sm ${largura === 'larga' ? 'max-w-5xl' : 'max-w-lg'}`}>
         <div className="flex items-center justify-between border-b border-slate-700 p-4">
           <h2 className="text-lg font-semibold text-slate-100">{titulo}</h2>
           <button

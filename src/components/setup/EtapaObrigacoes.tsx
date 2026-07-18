@@ -9,6 +9,7 @@ interface Props {
   jogadores: JogadorDraft[]
   obrigacoes: ObrigacoesEscolhidas
   onMudar: (obrigacoes: ObrigacoesEscolhidas) => void
+  onSortear: () => void
   onAvancar: () => void
   onVoltar: () => void
 }
@@ -17,6 +18,7 @@ export function EtapaObrigacoes({
   jogadores,
   obrigacoes,
   onMudar,
+  onSortear,
   onAvancar,
   onVoltar,
 }: Props) {
@@ -58,10 +60,26 @@ export function EtapaObrigacoes({
           Obrigações iniciais
         </h2>
         <p className="mt-1 text-slate-400">
-          O sorteio das cartas de controle acontece na mesa física — aqui
-          você só registra o que cada jogador comprou. Escolha o jogador
-          abaixo e toque nas obrigações que ele possui.
+          Sorteie conforme a preparação oficial ou registre manualmente o que
+          cada jogador comprou. Depois do sorteio, você ainda pode corrigir
+          qualquer obrigação tocando na tabela.
         </p>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-sky-800 bg-sky-950/30 p-3">
+        <button
+          type="button"
+          onClick={() => {
+            onSortear()
+            setMostrarAviso(false)
+          }}
+          className="rounded-lg bg-sky-600 px-4 py-3 font-semibold text-white"
+        >
+          Sortear conforme as regras
+        </button>
+        <span className="text-sm text-sky-200">
+          Também distribui os pares oficiais para partidas com 2 ou 3 jogadores.
+        </span>
       </div>
 
       <div className="flex flex-wrap gap-2">
